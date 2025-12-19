@@ -3,7 +3,7 @@ import { defineStore } from "pinia";
 const initialState = {
   sidebarVisible: true,
 };
-const useAppStore = defineStore("appStore", {
+export const useAppStore = defineStore("appStore", {
   state: () => initialState,
   actions: {
     toggleSidebarVisible() {

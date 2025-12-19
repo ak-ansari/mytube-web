@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
+    "@tanstack/vue-query": "^5.92.1",
+    "axios": "^1.13.2",
     "loadash": "^1.0.0",
     "moment": "^2.30.1",
     "pinia": "^3.0.3",

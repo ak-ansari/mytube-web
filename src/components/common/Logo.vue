@@ -1,5 +1,8 @@
 <template>
-  <v-sheet class="d-flex align-center justify-space-between pa-10 bg-background ga-2 border-0 shadow" rounded>
+  <v-sheet
+    class="d-flex align-center justify-space-between bg-background ga-2 border-0 shadow"
+    rounded
+  >
     <!-- Image with fixed size -->
     <v-img
       :src="imagePath"
@@ -10,7 +13,7 @@
     ></v-img>
 
     <!-- Text content -->
-    <v-row >
+    <v-row>
       <div class="text-h6">my</div>
       <div class="text-h6 text-red-darken-4">Tube</div>
     </v-row>
