@@ -24,21 +24,26 @@ export interface UploadVideoDto {
   file_name: string;
 }
 
-export interface VideoConfirmDtoApi {
+export interface VideoConfirmDto {
   thumbnail: string;
   title: string;
   description?: string;
   visibility: VideoVisibility;
+}
+export interface PresignedResult {
+  key: string;
+  url: string;
+  id: string;
 }
 
 export interface Video {
   id: string;
   user_id: string;
   file_key: string;
-  thumbnail: string | null;
-  title: string | null;
-  description?: string | null;
-  visibility: VideoVisibility | null;
+  thumbnail: string;
+  title: string;
+  description: string;
+  visibility: VideoVisibility;
   status: VideoStatus;
   stage: number;
   created_at: string; // ISO string

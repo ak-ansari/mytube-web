@@ -1,10 +1,17 @@
+import type { Video } from "@/types";
 import { Constants } from "@/utils";
 import { defineStore } from "pinia";
-
-const initialState = {
+interface InitialState {
+  search: string;
+  page: number;
+  limit: number;
+  videos: Video[];
+}
+const initialState: InitialState = {
   search: "",
   page: Constants.defaultPage,
   limit: Constants.defaultLimit,
+  videos: [],
 };
 export const useVideoStore = defineStore("videoStore", {
   state: () => initialState,
@@ -17,6 +24,9 @@ export const useVideoStore = defineStore("videoStore", {
     },
     setLimit(limit: number) {
       this.limit = limit;
+    },
+    setVideos(videos: Video[]) {
+      this.videos = videos;
     },
   },
 });

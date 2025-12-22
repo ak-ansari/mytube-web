@@ -6,6 +6,7 @@ import Login from "@/pages/Login.vue";
 import Signup from "@/pages/Signup.vue";
 import Home from "@/pages/Home.vue";
 import NotFound from "@/pages/404.vue";
+import UploadVideo from "@/pages/UploadVideo.vue";
 
 const routes = [
   {
@@ -20,7 +21,10 @@ const routes = [
     path: "/",
     component: MainLayout,
     meta: { requiresAuth: true },
-    children: [{ path: "", name: "Home", component: Home }],
+    children: [
+      { path: "", name: "Home", component: Home },
+      { path: "/upload", name: "Upload", component: UploadVideo }
+    ],
   },
   {
     path: "/:pathMatch(.*)*",
