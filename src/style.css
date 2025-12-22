@@ -1,0 +1,6 @@
+html,
+body,
+#app,
+.v-application {
+  transform: none !important;
+}

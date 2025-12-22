@@ -1,7 +1,10 @@
 import axios from "axios";
 import { http } from "./http";
 class FileService {
-  getPresignedUrl(key: string, size: number): Promise<{key: string, url: string}> {
+  getPresignedUrl(
+    key: string,
+    size: number
+  ): Promise<{ key: string; url: string }> {
     return http.get("/api/files/presign", {
       params: {
         key,
@@ -10,12 +13,12 @@ class FileService {
     });
   }
 
-  uploadToS3 = async (
+  uploadToS3 = (
     presignedUrl: string,
     file: File,
     onProgress?: (percent: number) => void
   ) => {
-    await axios.put(presignedUrl, file, {
+    return axios.put(presignedUrl, file, {
       headers: {
         "Content-Type": file.type, // IMPORTANT
       },

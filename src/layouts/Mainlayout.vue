@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import AppBar from '@/components/Appbar.vue'
 import SideBar from '@/components/Sidemenu.vue'
 import { useTheme } from 'vuetify'

@@ -9,7 +9,7 @@
       <Searchbar/>
     </div>
     <!-- Right section -->
-    <v-btn icon><v-icon>mdi-video-plus-outline</v-icon></v-btn>
+    <v-btn icon :to="'/upload'"><v-icon>mdi-video-plus-outline</v-icon></v-btn>
     <v-btn icon><v-icon>mdi-bell-outline</v-icon></v-btn>
     <v-avatar size="32" class="mr-3"><img src="https://i.pravatar.cc/32" /></v-avatar>
   </v-app-bar>

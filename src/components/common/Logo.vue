@@ -1,6 +1,7 @@
 <template>
   <v-sheet
-    class="d-flex align-center justify-space-between bg-background ga-2 border-0 shadow"
+    @click="navigateToHome"
+    class="d-flex align-center justify-space-between bg-background ga-2 border-0 shadow cursor-pointer"
     rounded
   >
     <!-- Image with fixed size -->
@@ -21,5 +22,11 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vuetify/lib/composables/router.mjs';
+
 const imagePath = new URL("@/assets/icons/logo.svg", import.meta.url).href;
+const router = useRouter()
+const navigateToHome = () =>{
+  router?.push("/")
+}
 </script>

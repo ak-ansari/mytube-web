@@ -87,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from "vue";
+import { ref, reactive } from "vue";
 import type { VForm } from "vuetify/components";
 import {
   useConfirmVideo,
@@ -95,8 +95,8 @@ import {
 } from "@/composables/video/video.mutation";
 import { VideoVisibility, type VideoConfirmDto } from "@/types";
 import { useUploadFile } from "@/composables/file/file.mutation";
-import { v4 } from "uuid";
 import { getUniqueFileName } from "@/utils";
+import { push } from "notivue";
 
 interface VideoForm {
   title: string;
@@ -141,39 +141,31 @@ const onSubmit = async () => {
       description: form.description,
       visibility: VideoVisibility.Public,
     };
-    confirmVideo({ id: data.value?.id || "", video: payload });
+    confirmVideo({ id: videoUploadRes.value?.id || "", video: payload });
 
-    alert("Video uploaded successfully!");
+    push.success("Video saved successfully!");
     removeVideoFile();
   } catch (err) {
     console.error(err);
-    alert("Failed to upload video.");
+    push.error("Failed to save the video.");
   } finally {
     isSubmitting.value = false;
   }
 };
-const onUploadProgress = (progress: number) => {
-  console.log("progress", progress);
-};
 const onFileUpload = (key: string) => {
   form.thumbnail = key;
 };
-const { mutate: upload, data, isSuccess } = useUploadVideo(onUploadProgress);
-const { mutate: uploadFile } = useUploadFile(onUploadProgress, onFileUpload);
+const { mutate: upload, data: videoUploadRes } = useUploadVideo();
+const { mutate: uploadFile } = useUploadFile(onFileUpload);
 const onSelect = () => {
   const file = form.videoFile;
   if (file) {
     upload(file);
-    if (isSuccess) {
-      console.log("uploaded successfully");
-    }
-  } else {
-    console.log("file not selected");
   }
 };
 const onThumbnailSelect = () => {
   const file = form.thumbnailFile;
-  if (file && data.value?.id) {
+  if (file && videoUploadRes.value?.id) {
     uploadFile({ file, key: `thumbnail/${getUniqueFileName(file)}` });
   }
 };

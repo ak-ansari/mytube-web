@@ -1,11 +1,10 @@
-
-<script setup lang="ts">
-</script>
-
 <template>
-    <RouterView></RouterView>
+    <Notification />
+  <RouterView></RouterView>
 </template>
 
-<style scoped>
-
-</style>
+<script lang="ts" setup>
+    import Notification from "@/components/Notification.vue";
+import { push } from "notivue";
+    push.success("dummy notification")
+</script>
