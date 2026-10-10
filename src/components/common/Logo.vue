@@ -1,32 +1,22 @@
 <template>
-  <v-sheet
-    @click="navigateToHome"
-    class="d-flex align-center justify-space-between bg-background ga-2 border-0 shadow cursor-pointer"
-    rounded
-  >
-    <!-- Image with fixed size -->
-    <v-img
-      :src="imagePath"
-      width="28.57"
-      height="20"
-      class="me-2"
-      alt="image"
-    ></v-img>
-
-    <!-- Text content -->
-    <v-row>
-      <div class="text-h6">my</div>
-      <div class="text-h6 text-red-darken-4">Tube</div>
-    </v-row>
-  </v-sheet>
+  <RouterLink to="/" class="logo d-flex align-center" aria-label="myTube home">
+    <img :src="logo" width="29" height="20" alt="" />
+    <span class="wordmark">my<span class="font-weight-bold">Tube</span></span>
+  </RouterLink>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vuetify/lib/composables/router.mjs';
-
-const imagePath = new URL("@/assets/icons/logo.svg", import.meta.url).href;
-const router = useRouter()
-const navigateToHome = () =>{
-  router?.push("/")
-}
+const logo = new URL("@/assets/icons/logo.svg", import.meta.url).href;
 </script>
+
+<style scoped>
+.logo {
+  gap: 4px;
+  padding: 18px 14px 18px 16px;
+}
+.wordmark {
+  font-size: 20px;
+  letter-spacing: -0.8px;
+  line-height: 1;
+}
+</style>

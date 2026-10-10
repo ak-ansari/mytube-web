@@ -1,48 +1,60 @@
 <template>
   <v-app>
-    <AppBar @toggle-drawer="drawer = !drawer" />
-    
+    <AppBar @toggle-drawer="toggleDrawer" />
+
     <v-navigation-drawer
-      v-model="drawer"
-      app
-      :permanent="!isMobile"
-      class="pa-0"
-      width="240"
+      v-model="drawerOpen"
+      :rail="rail"
+      :rail-width="72"
+      :width="240"
+      :temporary="overlay"
+      :permanent="!overlay"
+      floating
+      color="background"
     >
-      <SideBar />
+      <SideBar :rail="rail" />
     </v-navigation-drawer>
 
-    <v-main class="bg-background" :dark="theme.global.current.value.dark">
-      <v-container fluid class="pa-1" style="max-width: 100%;">
-        <router-view />
-      </v-container>
+    <v-main class="bg-background">
+      <router-view :key="routeKey" />
     </v-main>
   </v-app>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import AppBar from '@/components/Appbar.vue'
-import SideBar from '@/components/Sidemenu.vue'
-import { useTheme } from 'vuetify'
+import { computed, ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import { useDisplay } from "vuetify";
+import AppBar from "@/components/Appbar.vue";
+import SideBar from "@/components/Sidemenu.vue";
 
-const drawer = ref(true)
-const isMobile = ref(false)
-const theme = useTheme()
-const checkScreen = () => {
-  isMobile.value = window.innerWidth < 960
-  if (isMobile.value) drawer.value = false
-  else drawer.value = true
-}
+const route = useRoute();
+const { lgAndUp } = useDisplay();
 
-onMounted(() => {
-  checkScreen()
-  window.addEventListener('resize', checkScreen)
-})
+// desktop: permanent guide that collapses to a mini rail · smaller screens and the watch page: overlay guide
+const immersive = computed(() => !!route.meta.immersive);
+const collapsed = ref(false);
+const overlayOpen = ref(false);
+
+const overlay = computed(() => immersive.value || !lgAndUp.value);
+const drawerOpen = computed({
+  get: () => (overlay.value ? overlayOpen.value : true),
+  set: (v: boolean) => {
+    if (overlay.value) overlayOpen.value = v;
+  },
+});
+const rail = computed(() => !overlay.value && collapsed.value);
+
+const toggleDrawer = () => {
+  if (overlay.value) overlayOpen.value = !overlayOpen.value;
+  else collapsed.value = !collapsed.value;
+};
+
+watch(
+  () => route.fullPath,
+  () => (overlayOpen.value = false)
+);
+
+// re-mount pages when only params change (watch → watch, channel → channel)
+const routeKey = computed(() => `${String(route.name)}:${JSON.stringify(route.params)}`);
 </script>
-
-<style scoped>
-.v-main {
-  width: 100%;
-}
-</style>

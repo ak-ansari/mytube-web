@@ -1,48 +1,73 @@
-import 'vuetify/styles/main.css'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
+import "vuetify/styles/main.css";
+import { createVuetify, type ThemeDefinition } from "vuetify";
+import * as components from "vuetify/components";
+import * as directives from "vuetify/directives";
 
-// 🎨 Dark Theme (MyTube Dark)
-const myTubeDark = {
+const myTubeDark: ThemeDefinition = {
   dark: true,
   colors: {
-    background: '#121212',
-    surface: '#202020',
-    primary: '#FF0000',
-    secondary: '#E5E5E5',
-    accent: '#1F1F1F',
-    info: '#2196F3',
-    success: '#4CAF50',
-    warning: '#FB8C00',
-    error: '#FF5252'
-  }
-}
+    background: "#0f0f0f",
+    surface: "#0f0f0f",
+    "surface-bright": "#272727",
+    "surface-light": "#212121",
+    "surface-variant": "#3f3f3f",
+    "on-surface-variant": "#f1f1f1",
+    primary: "#ff0033",
+    secondary: "#f1f1f1",
+    accent: "#3ea6ff",
+    info: "#3ea6ff",
+    success: "#2ba640",
+    warning: "#f9a825",
+    error: "#ff4e45",
+  },
+  variables: {
+    "muted-text": "#aaaaaa",
+  },
+};
 
-// 🎨 Light Theme (MyTube Light)
-const myTubeLight = {
+const myTubeLight: ThemeDefinition = {
   dark: false,
   colors: {
-    background: '#FFFFFF',
-    surface: '#E5E5E5',
-    primary: '#FF0000',
-    secondary: '#212121',
-    accent: '#606060',
-    info: '#2196F3',
-    success: '#4CAF50',
-    warning: '#FB8C00',
-    error: '#FF5252'
+    background: "#ffffff",
+    surface: "#ffffff",
+    "surface-bright": "#f2f2f2",
+    "surface-light": "#f8f8f8",
+    "surface-variant": "#e5e5e5",
+    "on-surface-variant": "#0f0f0f",
+    primary: "#ff0033",
+    secondary: "#0f0f0f",
+    accent: "#065fd4",
+    info: "#065fd4",
+    success: "#2ba640",
+    warning: "#f57f17",
+    error: "#cc0000",
+  },
+  variables: {
+    "muted-text": "#606060",
+  },
+};
+
+const savedTheme = (() => {
+  try {
+    return localStorage.getItem("mytube-theme");
+  } catch {
+    return null;
   }
-}
+})();
 
 export const vuetify = createVuetify({
   components,
   directives,
   theme: {
-    defaultTheme: 'myTubeDark',
-    themes: {
-      myTubeLight,
-      myTubeDark,
-    },
+    defaultTheme: savedTheme === "myTubeLight" ? "myTubeLight" : "myTubeDark",
+    themes: { myTubeLight, myTubeDark },
   },
-})
+  defaults: {
+    VBtn: { rounded: "pill", class: "text-none" },
+    VTextField: { variant: "outlined", density: "comfortable", color: "accent" },
+    VTextarea: { variant: "outlined", density: "comfortable", color: "accent" },
+    VSelect: { variant: "outlined", density: "comfortable", color: "accent" },
+    VCard: { rounded: "xl" },
+    VDialog: { maxWidth: 640 },
+  },
+});

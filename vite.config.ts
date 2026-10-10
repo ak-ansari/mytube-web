@@ -8,6 +8,10 @@ export default defineConfig({
     vue(),
     vuetify({ autoImport: true }),
   ],
+  // scan every page up front so lazily-loaded routes don't trigger a dependency re-optimisation + full reload
+  optimizeDeps: {
+    entries: ["index.html", "src/**/*.vue"],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

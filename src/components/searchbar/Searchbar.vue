@@ -1,62 +1,126 @@
 <template>
-  <div class="d-flex align-center justify-center flex-1-1">
-    <!-- Search Input -->
-    <v-text-field
-      v-model="query"
-      placeholder="Search"
-      hide-details
-      density="comfortable"
-      variant="outlined"
-      rounded="pill"
-      class="w-100"
-      max-width="600"
-    >
-      <!-- Search Icon -->
-      <template #prepend-inner>
-        <v-icon size="20"></v-icon>
-      </template>
+  <form class="searchbar d-flex align-center" role="search" @submit.prevent="submit()">
+    <div class="field-wrap">
+      <v-text-field
+        v-model="query"
+        placeholder="Search"
+        hide-details
+        density="compact"
+        variant="outlined"
+        rounded="s-pill"
+        autocomplete="off"
+        color="accent"
+        class="search-field"
+        :clearable="!!query"
+        @focus="focused = true"
+        @blur="onBlur"
+        @keydown.down.prevent="move(1)"
+        @keydown.up.prevent="move(-1)"
+        @keydown.esc="focused = false"
+      >
+        <template #prepend-inner>
+          <v-icon v-if="focused" size="20" class="mr-1">mdi-magnify</v-icon>
+        </template>
+      </v-text-field>
 
-      <!-- Mic Icon -->
-      <template #append-inner>
-        <v-btn icon variant="text" size="small" class="bg-second">
-          <v-icon size="20">mdi-magnify</v-icon>
-        </v-btn>
-      </template>
-    </v-text-field>
-  </div>
+      <v-sheet v-if="showSuggestions" class="suggestions py-3" elevation="8" rounded="lg" color="surface-light">
+        <div
+          v-for="(s, i) in visibleSuggestions"
+          :key="s"
+          class="suggestion d-flex align-center px-4"
+          :class="{ active: i === highlighted }"
+          @mousedown.prevent="submit(s)"
+        >
+          <v-icon size="18" class="mr-4">mdi-magnify</v-icon>
+          <span class="line-clamp-1">{{ s }}</span>
+        </div>
+      </v-sheet>
+    </div>
+    <v-btn type="submit" class="search-btn" variant="flat" color="surface-bright" rounded="e-pill" height="40" width="64" aria-label="Search">
+      <v-icon>mdi-magnify</v-icon>
+    </v-btn>
+  </form>
 </template>
 
 <script setup lang="ts">
-import { watch, unref } from "vue";
-import { useVideoStore } from "@/stores/video.store";
-import { useSearchVideo, useSuggestSearch } from "@/composables/video/video.query";
-import { storeToRefs } from "pinia";
+import { computed, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useDebouncedRef } from "@/composables/useDebouce";
+import { useSuggestSearch } from "@/composables/video/video.query";
 
-// Get reactive store refs
-const videoStore = useVideoStore();
-const { search, page, limit } = storeToRefs(videoStore);
+const route = useRoute();
+const router = useRouter();
 
-// Local debounced input
-const { state: query, debounced } = useDebouncedRef<string>(search.value, 300);
+const { state: query, debounced } = useDebouncedRef<string>((route.query.q as string) || "", 200);
+const focused = ref(false);
+const highlighted = ref(-1);
 
-// Sync local input to store
-// watch(query, (val) => {
-//   videoStore.setSearch(val);
-// });
-
-// Use debounced value for API
-const { data, isLoading, isError, error } = useSearchVideo(
-  debounced,
-  page,
-  limit
-);
-
-// Optional: watch for debug
+// keep the box in sync when navigating between result pages
 watch(
-  () => data.value,
-  (val) => {
-    videoStore.setVideos(val || []);
-  }
+  () => route.query.q,
+  (q) => (query.value = (q as string) || "")
 );
+
+const suggestTerm = computed(() => (debounced.value || "").trim());
+const { data: suggestions } = useSuggestSearch(suggestTerm);
+const visibleSuggestions = computed(() => (suggestTerm.value ? (suggestions.value ?? []).slice(0, 8) : []));
+const showSuggestions = computed(() => focused.value && visibleSuggestions.value.length > 0);
+watch(visibleSuggestions, () => (highlighted.value = -1));
+
+const move = (delta: number) => {
+  const n = visibleSuggestions.value.length;
+  if (!n) return;
+  highlighted.value = (highlighted.value + delta + n) % n;
+};
+
+const onBlur = () => (focused.value = false);
+
+const submit = (term?: string) => {
+  const q = (term ?? (highlighted.value >= 0 ? visibleSuggestions.value[highlighted.value] : query.value) ?? "").trim();
+  focused.value = false;
+  if (!q) return;
+  query.value = q;
+  router.push({ name: "Results", query: { q } });
+};
 </script>
+
+<style scoped>
+.searchbar {
+  width: 100%;
+  max-width: 640px;
+}
+.field-wrap {
+  position: relative;
+  flex: 1;
+}
+.search-field :deep(.v-field) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-left: 12px;
+}
+.search-field :deep(.v-field__outline__end) {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+.search-btn {
+  margin-left: -1px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.suggestions {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+}
+.suggestion {
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+}
+.suggestion:hover,
+.suggestion.active {
+  background: rgb(var(--v-theme-surface-bright));
+}
+</style>

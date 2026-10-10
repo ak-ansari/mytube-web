@@ -1,208 +1,291 @@
 <template>
-  <v-card flat class="pa-6 mx-auto upload-card" max-width="600">
-    <h2 class="mb-6 text-h5">Upload Your Video</h2>
+  <div class="page upload-page">
+    <!-- 1. pick a file -->
+    <v-card v-if="step === 'select'" color="surface-light" class="pa-6 pa-sm-10">
+      <h1 class="page-title mb-6">Upload video</h1>
+      <div
+        class="dropzone d-flex flex-column align-center justify-center text-center"
+        :class="{ dragging }"
+        @click="fileInput?.click()"
+        @dragover.prevent="dragging = true"
+        @dragleave.prevent="dragging = false"
+        @drop.prevent="onDrop"
+      >
+        <div class="upload-icon d-flex align-center justify-center mb-6">
+          <v-icon size="64" class="text-muted">mdi-tray-arrow-up</v-icon>
+        </div>
+        <div class="text-body-1 mb-1">Drag and drop a video file to upload</div>
+        <div class="text-body-2 text-muted mb-6">Your video stays private until you publish it.</div>
+        <v-btn color="secondary" variant="flat" size="large">Select file</v-btn>
+        <input ref="fileInput" type="file" accept="video/*" hidden @change="onPick" />
+      </div>
+    </v-card>
 
-    <v-form ref="formRef" v-model="isValid" lazy-validation>
-      <!-- Step 1: Video File Upload -->
-      <div v-if="!form.videoFile" class="file-upload-box mb-4">
-        <v-file-input
-          :multiple="false"
-          v-model="form.videoFile"
-          label="Select Video File"
-          accept="video/*"
-          prepend-icon="mdi-video"
-          show-size
-          hide-details
-          outlined
-          dense
-          class="video-file-input"
-          @change="onSelect"
-        >
-          <template #append>
-            <v-icon>mdi-upload</v-icon>
-          </template>
-        </v-file-input>
+    <!-- 2. details while uploading + processing -->
+    <v-card v-else-if="step === 'details'" color="surface-light" class="pa-6 pa-sm-8">
+      <div class="d-flex align-center mb-6">
+        <h1 class="page-title line-clamp-1">{{ title || file?.name }}</h1>
+        <v-spacer />
+        <v-chip size="small" variant="tonal" :color="stateChip.color" :prepend-icon="stateChip.icon">{{ stateChip.label }}</v-chip>
       </div>
 
-      <!-- Step 2: Show other inputs only if video selected -->
-      <div v-else>
-        <div class="selected-video-box mb-4">
-          <v-icon size="48" class="mr-2">mdi-video</v-icon>
-          <span>{{ form.videoFile.name }}</span>
-          <v-btn icon small @click="removeVideoFile">
-            <v-icon color="red">mdi-close</v-icon>
-          </v-btn>
-        </div>
+      <v-row>
+        <v-col cols="12" md="7">
+          <h2 class="text-h6 font-weight-bold mb-4">Details</h2>
+          <v-form ref="formRef" @submit.prevent="publish">
+            <v-text-field
+              v-model="title"
+              label="Title (required)"
+              counter="100"
+              :rules="[(v: string) => (v.trim().length >= 3 && v.trim().length <= 100) || 'Use 3–100 characters']"
+              class="mb-3"
+            />
+            <v-textarea v-model="description" label="Description" rows="5" counter="5000" placeholder="Tell viewers about your video" class="mb-4" />
+          </v-form>
+          <ThumbnailPicker
+            v-if="videoId"
+            v-model:thumbnail-key="thumbnailKey"
+            v-model:uploading="uploadingThumb"
+            :prefix="`thumbnails/${videoId}`"
+            :current-url="draft?.thumbnail_url"
+            :empty-text="uploadProgress < 100 ? 'After upload' : 'Generating…'"
+          />
+          <VisibilityPicker v-model="visibility" class="mt-6" />
+        </v-col>
 
-        <!-- Title -->
-        <v-text-field
-          v-model="form.title"
-          label="Video Title"
-          :rules="[(v) => !!v || 'Title is required']"
-          required
-          outlined
-          dense
-          class="mb-4"
-        />
+        <v-col cols="12" md="5">
+          <div class="preview-card">
+            <div class="preview-thumb d-flex align-center justify-center">
+              <v-img v-if="draft?.thumbnail_url" :src="draft.thumbnail_url" :aspect-ratio="16 / 9" cover />
+              <v-icon v-else size="48" class="text-muted">mdi-filmstrip</v-icon>
+            </div>
+            <div class="pa-4">
+              <div class="text-caption text-muted">Filename</div>
+              <div class="text-body-2 mb-3 line-clamp-1">{{ file?.name }}</div>
+              <div class="text-caption text-muted">Size</div>
+              <div class="text-body-2 mb-3">{{ fileSize }}</div>
+              <template v-if="draft?.duration_seconds">
+                <div class="text-caption text-muted">Duration</div>
+                <div class="text-body-2 mb-3">{{ formatDuration(draft.duration_seconds) }}</div>
+              </template>
+              <v-progress-linear
+                :model-value="uploadProgress"
+                :indeterminate="uploadProgress === 100 && !ready && !failed"
+                :color="failed ? 'error' : ready ? 'success' : 'accent'"
+                height="6"
+                rounded
+                class="mb-2"
+              />
+              <div class="text-caption" :class="failed ? 'text-error' : 'text-muted'">{{ stateText }}</div>
+            </div>
+          </div>
+        </v-col>
+      </v-row>
 
-        <!-- Description -->
-        <v-textarea
-          v-model="form.description"
-          label="Description"
-          rows="3"
-          outlined
-          dense
-          class="mb-4"
-        />
-
-        <!-- Thumbnail Upload -->
-        <v-file-input
-          :multiple="false"
-          v-model="form.thumbnailFile"
-          label="Thumbnail Image"
-          accept="image/*"
-          prepend-icon="mdi-image"
-          show-size
-          hide-details
-          outlined
-          dense
-          class="mb-4"
-          @change="onThumbnailSelect"
-        >
-        </v-file-input>
-
-        <!-- Submit -->
-        <v-btn
-          :disabled="!isValid || isSubmitting"
-          color="primary"
-          class="mt-4"
-          @click="onSubmit"
-        >
-          <span v-if="!isSubmitting">Upload Video</span>
-          <span v-else>Uploading...</span>
+      <v-divider class="my-6" />
+      <div class="d-flex align-center ga-2">
+        <v-btn variant="text" :disabled="uploadProgress < 100 || discarding" :loading="discarding" @click="discard">Discard</v-btn>
+        <v-spacer />
+        <span v-if="!ready && !failed" class="text-caption text-muted mr-2 d-none d-sm-inline">Publish unlocks once the check finishes</span>
+        <v-btn color="accent" variant="flat" size="large" :disabled="!ready || uploadingThumb" :loading="publishing" @click="publish">
+          Publish
         </v-btn>
       </div>
-    </v-form>
-  </v-card>
+    </v-card>
+
+    <!-- 3. done -->
+    <v-card v-else color="surface-light" class="pa-10 text-center">
+      <v-icon size="72" color="success" class="mb-4">mdi-check-circle-outline</v-icon>
+      <h1 class="page-title mb-2">Video published</h1>
+      <p class="text-body-2 text-muted mb-8">
+        “{{ title }}” is being transcoded now. It will show up on your channel as soon as processing finishes — you can track it in
+        Studio.
+      </p>
+      <div class="d-flex justify-center ga-3">
+        <v-btn variant="tonal" @click="reset">Upload another</v-btn>
+        <v-btn color="secondary" variant="flat" :to="{ name: 'Studio' }">Go to Studio</v-btn>
+      </div>
+    </v-card>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
-import type { VForm } from "vuetify/components";
-import {
-  useConfirmVideo,
-  useUploadVideo,
-} from "@/composables/video/video.mutation";
-import { VideoVisibility, type VideoConfirmDto } from "@/types";
-import { useUploadFile } from "@/composables/file/file.mutation";
-import { getUniqueFileName } from "@/utils";
+import { computed, ref } from "vue";
+import { onBeforeRouteLeave } from "vue-router";
+import { useQuery, useQueryClient } from "@tanstack/vue-query";
 import { push } from "notivue";
+import type { VForm } from "vuetify/components";
+import ThumbnailPicker from "@/components/studio/ThumbnailPicker.vue";
+import VisibilityPicker from "@/components/studio/VisibilityPicker.vue";
+import videoService from "@/api/video.service";
+import fileService from "@/api/file.service";
+import catalogService from "@/api/catalog.service";
+import { errorMessage } from "@/api/http";
+import { catalogKeys } from "@/composables/catalog/catalog.keys";
+import { VideoStatus, VideoVisibility } from "@/types";
+import { formatDuration, stripExtension } from "@/utils";
 
-interface VideoForm {
-  title: string;
-  description: string;
-  thumbnailFile: File | null;
-  thumbnail: string;
-  videoFile: File | null;
-}
+const MAX_SIZE = 5 * 1024 * 1024 * 1024;
 
-const formRef = ref<InstanceType<typeof VForm> | null>(null);
-const isValid = ref(false);
-const isSubmitting = ref(false);
+const step = ref<"select" | "details" | "done">("select");
+const fileInput = ref<HTMLInputElement>();
+const formRef = ref<InstanceType<typeof VForm>>();
+const dragging = ref(false);
 
-const form = reactive<VideoForm>({
-  title: "",
-  description: "",
-  thumbnail: "",
-  thumbnailFile: null,
-  videoFile: null,
+const file = ref<File | null>(null);
+const videoId = ref("");
+const uploadProgress = ref(0);
+const title = ref("");
+const description = ref("");
+const visibility = ref<VideoVisibility>(VideoVisibility.Public);
+const thumbnailKey = ref("");
+const uploadingThumb = ref(false);
+const publishing = ref(false);
+const discarding = ref(false);
+
+const qc = useQueryClient();
+
+// After the file lands in storage the worker validates it and generates a thumbnail (phase 1).
+// Confirming before that finishes would advance the pipeline twice, so publish waits for it.
+const { data: draft } = useQuery({
+  queryKey: computed(() => catalogKeys.details(videoId.value)),
+  queryFn: () => catalogService.details(videoId.value),
+  enabled: computed(() => !!videoId.value && uploadProgress.value === 100 && step.value === "details"),
+  refetchInterval: (q) => {
+    const d = q.state.data;
+    return d && (d.status === VideoStatus.Phase1Failed || (d.status === VideoStatus.Valid && d.thumbnail)) ? false : 2000;
+  },
+});
+const ready = computed(() => draft.value?.status === VideoStatus.Valid && !!draft.value.thumbnail);
+const failed = computed(() => draft.value?.status === VideoStatus.Phase1Failed);
+
+const stateText = computed(() => {
+  if (failed.value) return "We couldn't process this file. Try a different video.";
+  if (uploadProgress.value < 100) return `Uploading ${uploadProgress.value}%…`;
+  if (!ready.value) return "Upload complete. Checking your video…";
+  return "Checks complete. Ready to publish.";
+});
+const stateChip = computed(() => {
+  if (failed.value) return { label: "Failed", color: "error", icon: "mdi-alert-circle" };
+  if (uploadProgress.value < 100) return { label: `Uploading ${uploadProgress.value}%`, color: "info", icon: "mdi-cloud-upload" };
+  if (!ready.value) return { label: "Checking", color: "info", icon: "mdi-progress-clock" };
+  return { label: "Ready", color: "success", icon: "mdi-check-circle" };
+});
+const fileSize = computed(() => {
+  const size = file.value?.size ?? 0;
+  return size >= 1024 ** 3 ? `${(size / 1024 ** 3).toFixed(2)} GB` : `${(size / 1024 ** 2).toFixed(1)} MB`;
 });
 
-// Remove video file
-const removeVideoFile = () => {
-  form.videoFile = null;
-  form.title = "";
-  form.description = "";
-  form.thumbnail = "";
-  formRef.value?.resetValidation();
-};
-const { mutate: confirmVideo } = useConfirmVideo();
-
-// Submit handler
-const onSubmit = async () => {
-  if (!formRef.value?.validate()) return;
-  if (!form.videoFile || !form.thumbnail) return;
-
-  isSubmitting.value = true;
+const start = async (f: File) => {
+  if (!f.type.startsWith("video/")) return push.error("Please choose a video file");
+  if (f.size > MAX_SIZE) return push.error("Videos must be under 5 GB");
+  file.value = f;
+  title.value = stripExtension(f.name).slice(0, 100);
+  step.value = "details";
+  uploadProgress.value = 0;
   try {
-    const payload: VideoConfirmDto = {
-      thumbnail: form.thumbnail,
-      title: form.title,
-      description: form.description,
-      visibility: VideoVisibility.Public,
-    };
-    confirmVideo({ id: videoUploadRes.value?.id || "", video: payload });
-
-    push.success("Video saved successfully!");
-    removeVideoFile();
+    const presigned = await videoService.presignedUrl({ file_name: f.name, size: f.size });
+    videoId.value = presigned.id;
+    await fileService.uploadToS3(presigned.url, f, (p) => (uploadProgress.value = Math.min(p, 99)));
+    uploadProgress.value = 100;
   } catch (err) {
-    console.error(err);
-    push.error("Failed to save the video.");
+    push.error(errorMessage(err, "Upload failed"));
+    reset();
+  }
+};
+
+const onPick = (e: Event) => {
+  const f = (e.target as HTMLInputElement).files?.[0];
+  if (f) start(f);
+};
+const onDrop = (e: DragEvent) => {
+  dragging.value = false;
+  const f = e.dataTransfer?.files?.[0];
+  if (f) start(f);
+};
+
+const publish = async () => {
+  const { valid } = (await formRef.value?.validate()) ?? { valid: false };
+  if (!valid || !ready.value) return;
+  publishing.value = true;
+  try {
+    await videoService.confirmVideo({
+      id: videoId.value,
+      video: { title: title.value.trim(), description: description.value, visibility: visibility.value, thumbnail: thumbnailKey.value },
+    });
+    await qc.invalidateQueries({ queryKey: catalogKeys.all });
+    step.value = "done";
+  } catch (err) {
+    push.error(errorMessage(err, "Couldn't publish the video"));
   } finally {
-    isSubmitting.value = false;
+    publishing.value = false;
   }
 };
-const onFileUpload = (key: string) => {
-  form.thumbnail = key;
-};
-const { mutate: upload, data: videoUploadRes } = useUploadVideo();
-const { mutate: uploadFile } = useUploadFile(onFileUpload);
-const onSelect = () => {
-  const file = form.videoFile;
-  if (file) {
-    upload(file);
+
+const discard = async () => {
+  discarding.value = true;
+  try {
+    if (videoId.value) await catalogService.remove(videoId.value);
+    push.info("Upload discarded");
+    reset();
+  } catch (err) {
+    push.error(errorMessage(err));
+  } finally {
+    discarding.value = false;
   }
 };
-const onThumbnailSelect = () => {
-  const file = form.thumbnailFile;
-  if (file && videoUploadRes.value?.id) {
-    uploadFile({ file, key: `thumbnail/${getUniqueFileName(file)}` });
-  }
+
+const reset = () => {
+  step.value = "select";
+  file.value = null;
+  videoId.value = "";
+  uploadProgress.value = 0;
+  title.value = "";
+  description.value = "";
+  visibility.value = VideoVisibility.Public;
+  thumbnailKey.value = "";
+  if (fileInput.value) fileInput.value.value = "";
 };
+
+onBeforeRouteLeave(() => {
+  if (step.value === "details" && uploadProgress.value < 100) {
+    return window.confirm("Your video is still uploading. Leave and cancel the upload?");
+  }
+});
 </script>
 
 <style scoped>
-.upload-card {
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+.upload-page {
+  max-width: 1080px;
 }
-
-.file-upload-box {
-  border: 2px dashed #1976d2;
-  border-radius: 12px;
-  padding: 40px;
-  text-align: center;
+.dropzone {
+  min-height: 380px;
+  border: 2px dashed rgba(var(--v-border-color), 0.25);
+  border-radius: 16px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
-.file-upload-box:hover {
-  background: rgba(25, 118, 210, 0.05);
+.dropzone:hover,
+.dropzone.dragging {
+  border-color: rgb(var(--v-theme-accent));
+  background: rgba(var(--v-theme-accent), 0.06);
 }
-
-.selected-video-box {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid #1976d2;
+.upload-icon {
+  width: 136px;
+  height: 136px;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-surface-bright));
+}
+.preview-card {
   border-radius: 12px;
+  overflow: hidden;
+  background: rgb(var(--v-theme-surface-bright));
 }
-
-.thumbnail-preview {
-  display: inline-block;
-  margin-top: 8px;
+.preview-thumb {
+  aspect-ratio: 16 / 9;
+  background: #000;
 }
-
-.v-file-input .v-input__control {
-  min-height: auto;
+.preview-thumb > .v-img {
+  width: 100%;
 }
 </style>

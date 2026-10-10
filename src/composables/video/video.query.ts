@@ -23,7 +23,7 @@ export const useSuggestSearch = (search: Ref<string>) => {
     enabled: computed(() => unref(search) !== ""), // only fetch if search is non-empty
   });
 };
-export const getVideo = (id: Ref<string>) => {
+export const useGetVideo = (id: Ref<string>) => {
   return useQuery({
     queryKey: videoKeys.getVideo(id),
     queryFn: () => videoService.getVideo(unref(id)),
