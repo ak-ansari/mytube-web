@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onBeforeUnmount, ref } from "vue";
 import { push } from "notivue";
 import { uploadObject } from "@/composables/file/uploadObject";
 import { errorMessage } from "@/api/http";
@@ -47,7 +47,7 @@ const onSelect = async (e: Event) => {
     push.error("Thumbnails must be under 5 MB");
     return;
   }
-  preview.value = URL.createObjectURL(file);
+  setPreview(URL.createObjectURL(file));
   uploading.value = true;
   progress.value = 0;
   try {
@@ -60,10 +60,18 @@ const onSelect = async (e: Event) => {
   }
 };
 
+/** swaps the local preview, freeing the previous object URL */
+const setPreview = (url: string) => {
+  if (preview.value) URL.revokeObjectURL(preview.value);
+  preview.value = url;
+};
+
 const reset = () => {
-  preview.value = "";
+  setPreview("");
   key.value = "";
 };
+
+onBeforeUnmount(() => setPreview(""));
 </script>
 
 <style scoped>

@@ -5,23 +5,38 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-/** Emits `load` whenever the sentinel scrolls into view and there is more to load. */
+/**
+ * Emits `load` whenever the sentinel scrolls into view and there is more to load.
+ * If it is still visible when a page finishes loading (short pages, tall screens), it asks again.
+ */
 const props = defineProps<{ hasMore: boolean; loading: boolean }>();
 const emit = defineEmits<{ load: [] }>();
 
 const sentinel = ref<HTMLElement>();
 let observer: IntersectionObserver | null = null;
+let visible = false;
+
+const maybeLoad = () => {
+  if (visible && props.hasMore && !props.loading) emit("load");
+};
 
 onMounted(() => {
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0]?.isIntersecting && props.hasMore && !props.loading) emit("load");
+      visible = !!entries[0]?.isIntersecting;
+      maybeLoad();
     },
     { rootMargin: "400px" }
   );
   if (sentinel.value) observer.observe(sentinel.value);
 });
+watch(
+  () => [props.loading, props.hasMore] as const,
+  ([loading, hasMore], [wasLoading, hadMore]) => {
+    if ((wasLoading && !loading) || (!hadMore && hasMore)) maybeLoad();
+  }
+);
 onBeforeUnmount(() => observer?.disconnect());
 </script>

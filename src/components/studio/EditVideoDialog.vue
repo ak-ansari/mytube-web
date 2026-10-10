@@ -17,7 +17,15 @@
                 :rules="[(v: string) => (v.trim().length >= 3 && v.trim().length <= 100) || 'Use 3–100 characters']"
                 class="mb-3"
               />
-              <v-textarea v-model="description" label="Description" rows="6" counter="5000" placeholder="Tell viewers about your video" class="mb-3" />
+              <v-textarea
+                v-model="description"
+                label="Description"
+                rows="6"
+                counter="5000"
+                :rules="[(v: string) => v.length <= 5000 || 'Use at most 5000 characters']"
+                placeholder="Tell viewers about your video"
+                class="mb-3"
+              />
               <ThumbnailPicker
                 v-model:thumbnail-key="thumbnailKey"
                 v-model:uploading="uploadingThumb"

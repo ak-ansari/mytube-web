@@ -28,9 +28,10 @@ const routes: RouteRecordRaw[] = [
       { path: ":pathMatch(.*)*", name: "NotFound", component: NotFound },
     ],
   },
-  // Keycloak hosts the login and registration screens
-  { path: "/auth/login", redirect: "/", beforeEnter: () => { login("/"); return false; } },
-  { path: "/auth/signup", redirect: "/", beforeEnter: () => { register("/"); return false; } },
+  // Keycloak hosts the login and registration screens (themed: mytube/deployments/keycloak/themes/mytube).
+  // beforeEnter never runs on a redirect route, so the redirect itself starts the Keycloak flow.
+  { path: "/auth/login", redirect: () => { login("/"); return "/"; } },
+  { path: "/auth/signup", redirect: () => { register("/"); return "/"; } },
 ];
 
 const router = createRouter({

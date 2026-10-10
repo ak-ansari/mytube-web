@@ -39,7 +39,10 @@ export interface StatusInfo {
   needsDetails: boolean;
 }
 
-export const videoStatusInfo = (v: Pick<VideoCard, "status" | "title">): StatusInfo => {
+/** Drafts still waiting for their file after this long were abandoned (closed tab, failed PUT). */
+export const STALE_UPLOAD_MS = 15 * 60 * 1000;
+
+export const videoStatusInfo = (v: Pick<VideoCard, "status" | "title" | "created_at" | "updated_at">, now = Date.now()): StatusInfo => {
   switch (v.status) {
     case VideoStatus.Published:
     case VideoStatus.Done:
@@ -49,6 +52,9 @@ export const videoStatusInfo = (v: Pick<VideoCard, "status" | "title">): StatusI
       return { label: "Failed", color: "error", icon: "mdi-alert-circle", processing: false, needsDetails: false };
     case VideoStatus.UploadPending:
     case VideoStatus.Uploaded:
+      if (now - new Date(v.updated_at || v.created_at).getTime() > STALE_UPLOAD_MS) {
+        return { label: "Upload incomplete", color: "error", icon: "mdi-cloud-alert", processing: false, needsDetails: false };
+      }
       return { label: "Uploading", color: "info", icon: "mdi-cloud-upload", processing: true, needsDetails: false };
   }
   if (!v.title) {

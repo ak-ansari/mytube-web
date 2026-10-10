@@ -16,12 +16,14 @@ class FileService {
   uploadToS3 = (
     presignedUrl: string,
     file: File,
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
+    signal?: AbortSignal
   ) => {
     return axios.put(presignedUrl, file, {
       headers: {
         "Content-Type": file.type, // IMPORTANT
       },
+      signal,
       onUploadProgress: (event) => {
         if (!event.total) return;
         const percent = Math.round((event.loaded / event.total) * 100);
@@ -29,8 +31,5 @@ class FileService {
       },
     });
   };
-  getUrl(key: string): Promise<string> {
-    return http.get(`/api/files/url`, { params: { key } });
-  }
 }
 export default new FileService();

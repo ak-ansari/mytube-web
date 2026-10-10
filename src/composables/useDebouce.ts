@@ -1,8 +1,8 @@
-import { ref, watch, type Ref } from "vue";
+import { isRef, onScopeDispose, ref, watch, type Ref } from "vue";
 
 export function useDebouncedRef<T>(initialValue: T | Ref<T>, delay = 300) {
-  const state = initialValue instanceof ref ? initialValue : ref(initialValue); // TS infers Ref<UnwrapRef<T>>
-  const debounced = ref(initialValue);
+  const state = (isRef(initialValue) ? initialValue : ref(initialValue)) as Ref<T>;
+  const debounced = ref(state.value) as Ref<T>;
 
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -11,6 +11,10 @@ export function useDebouncedRef<T>(initialValue: T | Ref<T>, delay = 300) {
     timeout = setTimeout(() => {
       debounced.value = val;
     }, delay);
+  });
+
+  onScopeDispose(() => {
+    if (timeout) clearTimeout(timeout);
   });
 
   return { state, debounced };

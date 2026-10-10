@@ -121,7 +121,10 @@ import { formatCount, formatDate, videoStatusInfo, visibilityIcon } from "@/util
 const { items, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } = useMyVideos();
 const { mutate: deleteVideo, isPending: deleting } = useDeleteVideo();
 
-const statusOf = videoStatusInfo;
+// ticks so drafts that stop moving flip to "Upload incomplete" (and stop the polling) without new data
+const now = ref(Date.now());
+const clock = setInterval(() => (now.value = Date.now()), 30_000);
+const statusOf = (v: VideoCard) => videoStatusInfo(v, now.value);
 const selected = ref<VideoCard | null>(null);
 const editOpen = ref(false);
 const deleteOpen = ref(false);
@@ -144,8 +147,8 @@ const confirmDelete = () => {
   });
 };
 
-// keep statuses fresh while something is moving through the pipeline
-const anyProcessing = computed(() => items.value.some((v) => videoStatusInfo(v).processing));
+// keep statuses fresh while something is genuinely moving through the pipeline (stale drafts don't count)
+const anyProcessing = computed(() => items.value.some((v) => statusOf(v).processing));
 let timer: ReturnType<typeof setInterval> | undefined;
 watch(
   anyProcessing,
@@ -155,7 +158,10 @@ watch(
   },
   { immediate: true }
 );
-onBeforeUnmount(() => clearInterval(timer));
+onBeforeUnmount(() => {
+  clearInterval(timer);
+  clearInterval(clock);
+});
 </script>
 
 <style scoped>

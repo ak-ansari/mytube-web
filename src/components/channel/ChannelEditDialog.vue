@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { onBeforeUnmount, ref, watch } from "vue";
 import { push } from "notivue";
 import type { VForm } from "vuetify/components";
 import ChannelAvatar from "./ChannelAvatar.vue";
@@ -54,6 +54,13 @@ const avatarPreview = ref("");
 const uploadingAvatar = ref(false);
 const { mutate, isPending } = useUpdateProfile();
 
+/** swaps the local preview, freeing the previous object URL */
+const setPreview = (url: string) => {
+  if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value);
+  avatarPreview.value = url;
+};
+onBeforeUnmount(() => setPreview(""));
+
 watch(
   open,
   (isOpen) => {
@@ -61,20 +68,29 @@ watch(
     channelName.value = props.profile.channel_name || props.profile.user_name;
     description.value = props.profile.description || "";
     avatarKey.value = undefined;
-    avatarPreview.value = "";
+    setPreview("");
   },
   { immediate: true }
 );
 
 const onAvatarSelected = async (e: Event) => {
   const file = (e.target as HTMLInputElement).files?.[0];
+  (e.target as HTMLInputElement).value = "";
   if (!file) return;
-  avatarPreview.value = URL.createObjectURL(file);
+  if (!file.type.startsWith("image/")) {
+    push.error("Please choose an image file");
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    push.error("Pictures must be under 5 MB");
+    return;
+  }
+  setPreview(URL.createObjectURL(file));
   uploadingAvatar.value = true;
   try {
     avatarKey.value = await uploadObject(`avatars/${props.profile.id}`, file);
   } catch (err) {
-    avatarPreview.value = "";
+    setPreview("");
     push.error(errorMessage(err, "Avatar upload failed"));
   } finally {
     uploadingAvatar.value = false;

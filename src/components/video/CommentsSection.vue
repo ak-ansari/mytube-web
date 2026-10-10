@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import { push } from "notivue";
 import ChannelAvatar from "@/components/channel/ChannelAvatar.vue";
 import LoadMore from "@/components/common/LoadMore.vue";
@@ -93,8 +93,6 @@ const submit = () =>
 
 const canDelete = (c: Comment) => !!me.value && (c.author.id === me.value.id || props.ownerId === me.value.id);
 const remove = (id: string) => deleteComment(id, { onSuccess: () => push.success("Comment deleted") });
-
-defineExpose({ count: computed(() => props.count) });
 </script>
 
 <style scoped>

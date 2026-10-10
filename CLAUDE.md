@@ -13,6 +13,8 @@ npm run preview
 
 No test or lint setup. `tsconfig.app.json` is strict with `noUnusedLocals`/`noUnusedParameters`, so unused imports/vars fail the build. Vite warns about Node 20.16 (wants 20.19+), but it still works.
 
+Login and registration pages are Keycloak's, restyled by the `mytube` theme in `../mytube/deployments/keycloak/themes/mytube`. Change their look there, not here.
+
 `.env`: `VITE_API_BASE_URL` (http://localhost:8080), `VITE_KEYCLOAK_URL` (http://localhost:8180), `VITE_KEYCLOAK_REALM` (mytube), `VITE_KEYCLOAK_CLIENT_ID` (mytube-frontend). Demo login: **demo / demo123**, or register on the Keycloak page.
 
 ## Stack
@@ -39,7 +41,8 @@ utils/format.ts                formatCount/Views/Subscribers/Duration, timeAgo, 
 - Reads are public. For actions that need login (like, comment, subscribe), call `login()` when `!isAuthenticated.value` instead of failing.
 - A global `MutationCache.onError` toasts the backend `message` for every failed mutation, so don't add per-mutation error toasts.
 - The API returns presigned `thumbnail_url` / `avatar_url` / `manifest_url`; render those directly. Uploads (video, thumbnail `thumbnails/{videoId}/…`, avatar `avatars/{userId}/…`) go straight to MinIO through presigned PUTs, and only the key goes to the API.
-- Upload flow (`pages/UploadVideo.vue`): presign → PUT with progress → poll `/videos/:id/details` until `status === valid` and the thumbnail exists → enable Publish → `confirm`. Never confirm earlier (backend pipeline limitation). Studio's "Finish" on a draft uses the same confirm.
+- Upload flow (`pages/UploadVideo.vue`): presign → PUT with progress → poll `/videos/:id/details` until `status === valid` and the thumbnail exists → enable Publish → `confirm`. Never confirm earlier (backend pipeline limitation). Studio's "Finish" on a draft uses the same confirm. The video PUT is abortable: Discard, leaving the route (after the confirm prompt) or unmounting mid-upload aborts it and best-effort deletes the draft; a failed upload deletes it too. A `beforeunload` prompt guards closing the tab while uploading.
+- `videoStatusInfo` treats `upload_pending`/`uploaded` drafts whose `updated_at` is over 15 minutes old as "Upload incomplete" (not processing), so Studio stops its 4s polling for them; they can still be deleted.
 - Playback: `VideoPlayer` (video.js) with `application/x-mpegURL` for the HLS master playlist. The view is recorded on first `play`.
 
 ## Conventions
@@ -49,6 +52,6 @@ utils/format.ts                formatCount/Views/Subscribers/Duration, timeAgo, 
 - Shared layout CSS lives in `style.css` (`.page`, `.video-grid`, `.page-title`, `.line-clamp-*`).
 - `vite.config.ts` pre-scans all `.vue` files (`optimizeDeps.entries`). Without that, the first visit to a lazy route triggers a dev-server full reload.
 
-## Leftovers
+## Notes
 
-`components/VideoPlayer.vue` is the only player. `composables/video/*` and `composables/videometadata/*` predate the catalog API: `useSuggestSearch` is still used by the search bar, the rest is unused.
+`components/VideoPlayer.vue` is the only player. `composables/video/` only holds `useSuggestSearch` (search-bar suggestions); `api/video.service.ts` is just the upload presign, suggestions and confirm. Everything else goes through `catalog.service`.

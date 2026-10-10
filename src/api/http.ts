@@ -12,11 +12,17 @@ http.interceptors.request.use(async (config) => {
   return config;
 });
 
+// several requests can fail with 401 at once; redirect to the login page only once
+let redirectingToLogin = false;
+
 http.interceptors.response.use(
   (res) => res.data.data,
   (err) => {
     // session expired or revoked in Keycloak
-    if (err.response?.status === 401 && isAuthenticated.value) login();
+    if (err.response?.status === 401 && isAuthenticated.value && !redirectingToLogin) {
+      redirectingToLogin = true;
+      login().catch(() => (redirectingToLogin = false));
+    }
     return Promise.reject(err.response?.data || err);
   }
 );

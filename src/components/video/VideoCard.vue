@@ -1,4 +1,9 @@
 <template>
+  <!--
+    The whole card is one link (to Watch). The channel avatar/name inside are plain, non-focusable elements with a
+    click handler that routes to the channel instead, so there is no <a>/<button> nested inside the <a>; keyboard and
+    screen-reader users get a single link per card and reach the channel from the watch page.
+  -->
   <RouterLink :to="{ name: 'Watch', params: { videoId: video.id } }" class="video-card" :class="`variant-${variant}`">
     <VideoThumbnail class="card-thumb" :url="video.thumbnail_url" :duration-seconds="video.duration_seconds" />
 
