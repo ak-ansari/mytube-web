@@ -17,6 +17,11 @@ describe("VideoThumbnail", () => {
     expect(wrapper.find(".thumb").classes()).not.toContain("rounded");
   });
 
+  it("marks the image decorative with an empty alt (the card link carries the title)", async () => {
+    const { wrapper } = await mountWithPlugins(VideoThumbnail, { props: { url: "http://img.test/a.jpg" } });
+    expect(wrapper.findComponent(VImg).props("alt")).toBe("");
+  });
+
   it("falls back to the placeholder when there is no url", async () => {
     const { wrapper } = await mountWithPlugins(VideoThumbnail, { props: {} });
     expect(String(wrapper.findComponent(VImg).props("src"))).toContain("no-image-placeholder");

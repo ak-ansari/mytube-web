@@ -1,11 +1,25 @@
 import moment from "moment";
 import { VideoStatus, type ChannelSummary, type VideoCard } from "@/types";
 
-/** 1234 -> "1.2K", 1500000 -> "1.5M" */
+const COUNT_UNITS: ReadonlyArray<readonly [number, string]> = [
+  [1_000_000_000, "B"],
+  [1_000_000, "M"],
+  [1_000, "K"],
+];
+
+/** 1234 -> "1.2K", 1500000 -> "1.5M", 999999 -> "1M" (not "1000K") */
 export const formatCount = (n: number): string => {
-  if (n >= 1_000_000_000) return `${+(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${+(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${+(n / 1_000).toFixed(1)}K`;
+  let bigger: readonly [number, string] | undefined;
+  for (const unit of COUNT_UNITS) {
+    const [size, suffix] = unit;
+    if (n >= size) {
+      const value = +(n / size).toFixed(1);
+      // rounding can reach the next unit (999_999 -> 1000.0K), so show it in that unit instead
+      if (value >= 1000 && bigger) return `${+(n / bigger[0]).toFixed(1)}${bigger[1]}`;
+      return `${value}${suffix}`;
+    }
+    bigger = unit;
+  }
   return `${n}`;
 };
 

@@ -34,9 +34,13 @@ describe("formatCount", () => {
   });
 
   // 999_999 / 1000 = 999.999 -> toFixed(1) = "1000.0" -> "1000K" instead of rolling over to "1M"
-  it.skip("BUG: values just below a unit boundary render as 1000K / 1000M instead of 1M / 1B", () => {
+  it("rolls values that round up to 1000 into the next unit", () => {
+    expect(formatCount(999_949)).toBe("999.9K");
+    expect(formatCount(999_950)).toBe("1M");
     expect(formatCount(999_999)).toBe("1M");
     expect(formatCount(999_999_999)).toBe("1B");
+    // there is no unit above B, so it keeps counting in B
+    expect(formatCount(999_999_999_999)).toBe("1000B");
   });
 });
 
@@ -213,8 +217,10 @@ describe("file name helpers", () => {
     expect(stripExtension("my.holiday.mov")).toBe("my.holiday");
     expect(stripExtension("noext")).toBe("noext");
   });
-  // split(".").pop() returns the whole name when there is no dot, so uploadObject keys become "<uuid>.<filename>"
-  it.skip("BUG: getExtension returns the whole file name when there is no extension", () => {
-    expect(getExtension("avatar")).toBeFalsy();
+  it("getExtension is empty when there is no extension", () => {
+    expect(getExtension("avatar")).toBe("");
+    expect(getExtension(".env")).toBe("");
+    expect(getExtension("file.")).toBe("");
+    expect(getExtension("")).toBe("");
   });
 });

@@ -1,6 +1,7 @@
 <template>
   <div class="thumb" :class="{ rounded: !square }">
-    <v-img :src="src || placeholder" :aspect-ratio="16 / 9" cover class="thumb-img" @error="failed = true">
+    <!-- decorative: the surrounding card link already carries the title -->
+    <v-img :src="src || placeholder" alt="" :aspect-ratio="16 / 9" cover class="thumb-img" @error="failed = true">
       <template #placeholder>
         <div class="thumb-placeholder" />
       </template>

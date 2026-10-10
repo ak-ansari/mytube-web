@@ -9,7 +9,7 @@
           <div>
             <div class="text-body-2 text-muted mb-2">JPG or PNG, square works best.</div>
             <v-btn variant="tonal" prepend-icon="mdi-camera-outline" :loading="uploadingAvatar" @click="avatarInput?.click()">Change picture</v-btn>
-            <input ref="avatarInput" type="file" accept="image/*" hidden @change="onAvatarSelected" />
+            <input ref="avatarInput" type="file" :accept="IMAGE_ACCEPT" hidden @change="onAvatarSelected" />
           </div>
         </div>
         <v-form ref="formRef" @submit.prevent="save">
@@ -37,7 +37,7 @@ import { onBeforeUnmount, ref, watch } from "vue";
 import { push } from "notivue";
 import type { VForm } from "vuetify/components";
 import ChannelAvatar from "./ChannelAvatar.vue";
-import { uploadObject } from "@/composables/file/uploadObject";
+import { IMAGE_ACCEPT, isAcceptedImage, uploadObject } from "@/composables/file/uploadObject";
 import { useUpdateProfile } from "@/composables/user/user.mutation";
 import { errorMessage } from "@/api/http";
 import type { Profile } from "@/types";
@@ -77,8 +77,8 @@ const onAvatarSelected = async (e: Event) => {
   const file = (e.target as HTMLInputElement).files?.[0];
   (e.target as HTMLInputElement).value = "";
   if (!file) return;
-  if (!file.type.startsWith("image/")) {
-    push.error("Please choose an image file");
+  if (!isAcceptedImage(file)) {
+    push.error("Please choose a JPEG, PNG, WebP or GIF image");
     return;
   }
   if (file.size > 5 * 1024 * 1024) {

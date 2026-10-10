@@ -62,10 +62,14 @@ describe("ChannelEditDialog", () => {
     expect(avatar).toMatch(/^avatars\/u1\/[0-9a-f-]{36}\.png$/);
   });
 
-  it("rejects non-images and files over 5 MB", async () => {
+  it("rejects non-images, unsupported image formats and files over 5 MB", async () => {
     const { wrapper } = await mountOpen();
+    expect(wrapper.find("input[type=file]").attributes("accept")).toBe("image/jpeg,image/png,image/webp,image/gif");
     await pickFiles(wrapper.find("input[type=file]"), [makeFile("doc.pdf", "application/pdf")]);
-    expect(push.error).toHaveBeenCalledWith("Please choose an image file");
+    expect(push.error).toHaveBeenCalledWith("Please choose a JPEG, PNG, WebP or GIF image");
+    vi.mocked(push.error).mockClear();
+    await pickFiles(wrapper.find("input[type=file]"), [makeFile("photo.heic", "image/heic")]);
+    expect(push.error).toHaveBeenCalledWith("Please choose a JPEG, PNG, WebP or GIF image");
     await pickFiles(wrapper.find("input[type=file]"), [makeFile("big.png", "image/png", 6 * 1024 * 1024)]);
     expect(push.error).toHaveBeenCalledWith("Pictures must be under 5 MB");
     expect(fileService.getPresignedUrl).not.toHaveBeenCalled();

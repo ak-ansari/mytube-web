@@ -79,10 +79,8 @@ test.describe("signed-in pages", () => {
 test.describe("images", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  // BUG: components/video/VideoThumbnail.vue renders <v-img> without `alt`, so every thumbnail <img>
-  // in feeds, results, the watch sidebar and Studio lacks an alt attribute (screen readers may read the
-  // presigned URL). Fix: pass alt="" (decorative; the card link already carries the title).
-  test.fixme("thumbnails have an alt attribute", async ({ page }) => {
+  // thumbnails are decorative (alt=""): the card link already carries the title
+  test("thumbnails have an alt attribute", async ({ page }) => {
     await page.goto("/");
     await new AppShell(page).ready();
     await expect(page.locator("main img").first()).toBeVisible();

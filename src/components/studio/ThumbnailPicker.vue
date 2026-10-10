@@ -16,7 +16,7 @@
         </v-btn>
         <v-btn v-if="preview" variant="text" size="small" :disabled="uploading" @click="reset">Use default</v-btn>
       </div>
-      <input ref="input" type="file" accept="image/*" hidden @change="onSelect" />
+      <input ref="input" type="file" :accept="IMAGE_ACCEPT" hidden @change="onSelect" />
     </div>
   </div>
 </template>
@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from "vue";
 import { push } from "notivue";
-import { uploadObject } from "@/composables/file/uploadObject";
+import { IMAGE_ACCEPT, isAcceptedImage, uploadObject } from "@/composables/file/uploadObject";
 import { errorMessage } from "@/api/http";
 
 const props = withDefaults(
@@ -43,6 +43,10 @@ const onSelect = async (e: Event) => {
   const file = (e.target as HTMLInputElement).files?.[0];
   (e.target as HTMLInputElement).value = "";
   if (!file) return;
+  if (!isAcceptedImage(file)) {
+    push.error("Thumbnails must be JPEG, PNG, WebP or GIF images");
+    return;
+  }
   if (file.size > 5 * 1024 * 1024) {
     push.error("Thumbnails must be under 5 MB");
     return;

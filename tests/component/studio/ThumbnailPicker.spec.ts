@@ -59,6 +59,14 @@ describe("ThumbnailPicker", () => {
     expect(wrapper.text()).toContain("Upload thumbnail");
   });
 
+  it("only offers and accepts JPEG, PNG, WebP and GIF", async () => {
+    const { wrapper } = await mountWithPlugins(ThumbnailPicker, { props: { prefix: "p" } });
+    expect(wrapper.find("input[type=file]").attributes("accept")).toBe("image/jpeg,image/png,image/webp,image/gif");
+    await pickFiles(wrapper.find("input[type=file]"), [makeFile("pic.svg", "image/svg+xml")]);
+    expect(push.error).toHaveBeenCalledWith("Thumbnails must be JPEG, PNG, WebP or GIF images");
+    expect(fs.getPresignedUrl).not.toHaveBeenCalled();
+  });
+
   it("rejects files over 5 MB without uploading", async () => {
     const { wrapper } = await mountWithPlugins(ThumbnailPicker, { props: { prefix: "p" } });
     await pickFiles(wrapper.find("input[type=file]"), [makeFile("big.png", "image/png", 6 * 1024 * 1024)]);

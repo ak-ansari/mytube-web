@@ -9,9 +9,11 @@ npm install
 npm run dev      # Vite on http://localhost:5173 — the only origin the backend CORS and the Keycloak client allow
 npm run build    # vue-tsc -b && vite build — this is the typecheck; must pass
 npm run preview
+npm test               # Vitest unit (tests/unit) + component (tests/component), jsdom; npm run test:coverage
+npm run test:e2e       # Playwright (tests/e2e) against the running dev stack; logs in as demo via the real Keycloak page
 ```
 
-No test or lint setup. `tsconfig.app.json` is strict with `noUnusedLocals`/`noUnusedParameters`, so unused imports/vars fail the build. Vite warns about Node 20.16 (wants 20.19+), but it still works.
+No lint setup. `tsconfig.app.json` is strict with `noUnusedLocals`/`noUnusedParameters`, so unused imports/vars fail the build. Vite warns about Node 20.16 (wants 20.19+), but it still works.
 
 Login and registration pages are Keycloak's, restyled by the `mytube` theme in `../mytube/deployments/keycloak/themes/mytube`. Change their look there, not here.
 
@@ -40,7 +42,7 @@ utils/format.ts                formatCount/Views/Subscribers/Duration, timeAgo, 
 - `main.ts` awaits `initAuth()` before mounting, so the router guard knows the session. `index.html` shows a splash meanwhile. Routes with `meta.requiresAuth` redirect to the Keycloak login. `/auth/login` and `/auth/signup` jump straight to Keycloak.
 - Reads are public. For actions that need login (like, comment, subscribe), call `login()` when `!isAuthenticated.value` instead of failing.
 - A global `MutationCache.onError` toasts the backend `message` for every failed mutation, so don't add per-mutation error toasts.
-- The API returns presigned `thumbnail_url` / `avatar_url` / `manifest_url`; render those directly. Uploads (video, thumbnail `thumbnails/{videoId}/…`, avatar `avatars/{userId}/…`) go straight to MinIO through presigned PUTs, and only the key goes to the API.
+- The API returns presigned `thumbnail_url` / `avatar_url` / `manifest_url`; render those directly. Uploads (video, thumbnail `thumbnails/{videoId}/…`, avatar `avatars/{userId}/…`) go straight to MinIO through presigned PUTs, and only the key goes to the API. The API only presigns/accepts JPEG/PNG/WebP/GIF images in those folders (yours only), so image pickers use `IMAGE_ACCEPT`/`isAcceptedImage` from `uploadObject.ts`.
 - Upload flow (`pages/UploadVideo.vue`): presign → PUT with progress → poll `/videos/:id/details` until `status === valid` and the thumbnail exists → enable Publish → `confirm`. Never confirm earlier (backend pipeline limitation). Studio's "Finish" on a draft uses the same confirm. The video PUT is abortable: Discard, leaving the route (after the confirm prompt) or unmounting mid-upload aborts it and best-effort deletes the draft; a failed upload deletes it too. A `beforeunload` prompt guards closing the tab while uploading.
 - `videoStatusInfo` treats `upload_pending`/`uploaded` drafts whose `updated_at` is over 15 minutes old as "Upload incomplete" (not processing), so Studio stops its 4s polling for them; they can still be deleted.
 - Playback: `VideoPlayer` (video.js) with `application/x-mpegURL` for the HLS master playlist. The view is recorded on first `play`.
